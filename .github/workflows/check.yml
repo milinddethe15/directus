@@ -25,18 +25,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Get list of changed files
         id: changes
-        run: echo "::set-output name=files::$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})"
+        run: echo "FILES_CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})" >> $GITHUB_STATE
 
       - name: Prepare
         uses: ./.github/actions/prepare
 
       - name: Run Linter on changed files
         run: |
-          changed_files="${{ steps.changes.outputs.files }}"
+          changed_files="${{ env.FILES_CHANGED }}"
           if [ -n "$changed_files" ]; then
             pnpm exec eslint $changed_files
           else
@@ -48,11 +48,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Get list of changed files
         id: changes
-        run: echo "::set-output name=files::$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})"
+        run: echo "FILES_CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})" >> $GITHUB_STATE
 
       - name: Prepare
         uses: ./.github/actions/prepare
@@ -61,7 +61,7 @@ jobs:
 
       - name: Run Formatter on changed files
         run: |
-          changed_files="${{ steps.changes.outputs.files }}"
+          changed_files="${{ env.FILES_CHANGED }}"
           if [ -n "$changed_files" ]; then
             pnpm exec prettier --check $changed_files
           else
@@ -73,7 +73,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Prepare
         uses: ./.github/actions/prepare
