@@ -35,8 +35,7 @@ jobs:
       - name: Get changed files
         id: set-output
         run: |
-          echo "::set-output name=files::$(git diff --name-only ${{ github.base_ref }} ${{ github.head_ref }})"
-        shell: bash
+          echo "changed-files=${{ steps.changed-files.outputs.files }}" >> $GITHUB_STATE
 
   lint:
     name: Lint
@@ -51,8 +50,10 @@ jobs:
 
       - name: Run Linter
         run: |
-          changed_files=${{ needs.get-changed-files.outputs.changed-files }}
+          changed_files=$(cat $GITHUB_STATE | grep -oP 'changed-files=\K.*')
           pnpm exec eslint $changed_files
+
+        shell: bash
 
   format:
     name: Format
@@ -69,8 +70,10 @@ jobs:
 
       - name: Run Formatter
         run: |
-          changed_files=${{ needs.get-changed-files.outputs.changed-files }}
+          changed_files=$(cat $GITHUB_STATE | grep -oP 'changed-files=\K.*')
           pnpm exec prettier --check $changed_files
+
+        shell: bash
 
   unit:
     name: Unit Tests
