@@ -18,76 +18,62 @@ concurrency:
 
 env:
   NODE_OPTIONS: --max_old_space_size=6144
-  CHANGED_FILES: ""
 
 jobs:
-  get-changed-files:
-    name: Get Changed Files
-    runs-on: ubuntu-latest
-    outputs:
-      changed-files: ${{ steps.set-output.outputs.files }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Prepare
-        uses: ./.github/actions/prepare
-
-      - name: Get changed files
-        id: set-output
-        run: |
-          echo "::set-env name=CHANGED_FILES::$(git diff --name-only ${{ github.base_ref }} ${{ github.head_ref }})"
-
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    needs: get-changed-files
-    if: |
-      github.event_name == 'pull_request' || (github.event_name == 'push' && env.CHANGED_FILES != '')
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
+
+      - name: Get list of changed files
+        id: changes
+        run: echo "::set-output name=files::$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})"
 
       - name: Prepare
         uses: ./.github/actions/prepare
 
-      - name: Run Linter
+      - name: Run Linter on changed files
         run: |
-          changed_files=${{ env.CHANGED_FILES }}
-          echo "Changed files: $changed_files"
-          pnpm exec eslint $changed_files
-
-        shell: bash
+          changed_files="${{ steps.changes.outputs.files }}"
+          if [ -n "$changed_files" ]; then
+            pnpm exec eslint $changed_files
+          else
+            echo "No changed files to lint."
+          fi
 
   format:
     name: Format
     runs-on: ubuntu-latest
-    needs: get-changed-files
-    if: |
-      github.event_name == 'pull_request' || (github.event_name == 'push' && env.CHANGED_FILES != '')
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
+
+      - name: Get list of changed files
+        id: changes
+        run: echo "::set-output name=files::$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})"
 
       - name: Prepare
         uses: ./.github/actions/prepare
         with:
           build: false
 
-      - name: Run Formatter
+      - name: Run Formatter on changed files
         run: |
-          changed_files=${{ env.CHANGED_FILES }}
-          echo "Changed files: $changed_files"
-          pnpm exec prettier --check $changed_files
-
-        shell: bash
+          changed_files="${{ steps.changes.outputs.files }}"
+          if [ -n "$changed_files" ]; then
+            pnpm exec prettier --check $changed_files
+          else
+            echo "No changed files to format."
+          fi
 
   unit:
     name: Unit Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
 
       - name: Prepare
         uses: ./.github/actions/prepare
