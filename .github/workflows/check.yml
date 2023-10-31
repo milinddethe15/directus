@@ -35,10 +35,7 @@ jobs:
       - name: Get changed files
         id: set-output
         run: |
-          CHANGED_FILES=$(git diff --name-only ${{ github.base_ref }} ${{ github.head_ref }})
-          echo "CHANGED_FILES=$CHANGED_FILES" >> $GITHUB_ENV
-          echo "Changed files: $CHANGED_FILES"
-        shell: bash
+          echo "::set-env name=CHANGED_FILES::$(git diff --name-only ${{ github.base_ref }} ${{ github.head_ref }})"
   
   lint:
     name: Lint
