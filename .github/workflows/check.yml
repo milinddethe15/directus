@@ -27,11 +27,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Get list of changed files
+        id: changes
+        run: echo "FILES_CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})" >> $GITHUB_STATE
+
       - name: Prepare
         uses: ./.github/actions/prepare
 
-      - name: Run Linter
-        run: pnpm exec eslint .
+      - name: Run Linter on changed files
+        run: |
+          changed_files="${{ env.FILES_CHANGED }}"
+          if [ -n "$changed_files" ]; then
+            pnpm exec eslint $changed_files
+          else
+            echo "No changed files to lint."
+          fi
 
   format:
     name: Format
@@ -40,13 +50,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Get list of changed files
+        id: changes
+        run: echo "FILES_CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})" >> $GITHUB_STATE
+
       - name: Prepare
         uses: ./.github/actions/prepare
         with:
           build: false
 
-      - name: Run Formatter
-        run: pnpm exec prettier --check .
+      - name: Run Formatter on changed files
+        run: |
+          changed_files="${{ env.FILES_CHANGED }}"
+          if [ -n "$changed_files" ]; then
+            pnpm exec prettier --check $changed_files
+          else
+            echo "No changed files to format."
+          fi
 
   unit:
     name: Unit Tests
