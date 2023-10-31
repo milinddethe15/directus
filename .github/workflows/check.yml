@@ -35,15 +35,14 @@ jobs:
       - name: Get changed files
         id: set-output
         run: |
-          echo "changed-files=${{ steps.changed-files.outputs.files }}" >> $GITHUB_STATE
-          echo "Changed files: $changed_files"
+          echo "::set-env name=CHANGED_FILES::$(git diff --name-only ${{ github.base_ref }} ${{ github.head_ref }})"
         shell: bash
   
   lint:
     name: Lint
     runs-on: ubuntu-latest
     needs: get-changed-files
-    if: github.event_name == 'pull_request' || github.event_name == 'push' && env.GITHUB_STATE != ''
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && steps.set-changed-files.outputs.CHANGED_FILES != '')
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -53,7 +52,7 @@ jobs:
 
       - name: Run Linter
         run: |
-          changed_files=$(cat $GITHUB_STATE | grep -oP 'changed-files=\K.*')
+          changed_files=${{ env.CHANGED_FILES }}
           echo "Changed files: $changed_files"
           pnpm exec eslint $changed_files
 
@@ -63,7 +62,7 @@ jobs:
     name: Format
     runs-on: ubuntu-latest
     needs: get-changed-files
-    if: github.event_name == 'pull_request' || github.event_name == 'push' && env.GITHUB_STATE != ''
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && steps.set-changed-files.outputs.CHANGED_FILES != '')
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -75,7 +74,7 @@ jobs:
 
       - name: Run Formatter
         run: |
-          changed_files=$(cat $GITHUB_STATE | grep -oP 'changed-files=\K.*')
+          changed_files=${{ env.CHANGED_FILES }}
           echo "Changed files: $changed_files"
           pnpm exec prettier --check $changed_files
 
